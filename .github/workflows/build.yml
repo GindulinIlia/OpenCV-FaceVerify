@@ -9,7 +9,7 @@ jobs:
     - name: Check main.py
       run: |
         if [ ! -f "main.py" ]; then
-          echo "ERROR: main.py not found!"
+          echo "ERROR: main.py not found! Please rename your file to exactly 'main.py'"
           exit 1
         fi
 
@@ -26,7 +26,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         pip install --upgrade pip
-        pip install buildozer cython==0.29.33
+        pip install buildozer cython==3.0.10
         
     - name: Create buildozer.spec
       run: |
@@ -38,7 +38,7 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,json
         version = 0.1
-        requirements = python3,kivy==2.2.1
+        requirements = python3,kivy==2.3.0
         orientation = portrait
         fullscreen = 0
         android.archs = arm64-v8a
@@ -50,28 +50,30 @@ jobs:
         [buildozer]
         log_level = 2
         warn_on_root = 1
-        # p4a.branch УДАЛЕН, чтобы использовать стабильную версию по умолчанию
+        p4a.branch = develop
         EOF
         
     - name: Build APK
       run: |
-        # 1. ПРИНУДИТЕЛЬНАЯ ОЧИСТКА КЭША (критически важно!)
-        rm -rf .buildozer
-        rm -rf bin
+        echo "🧹 Очистка кэша..."
+        rm -rf .buildozer bin
         
-        # 2. Запуск сборки
+        echo "🚀 Запуск сборки..."
         buildozer -v android debug > build_full_log.txt 2>&1
         EXIT_CODE=$?
         
-        if [ $EXIT_CODE -ne 0 ]; then
-          echo "========================================="
-          echo "🚨 ОШИБКА:"
-          echo "========================================="
-          tail -n 50 build_full_log.txt
-          echo "========================================="
-          exit 1
-        else
+        if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ Сборка прошла успешно!"
+        else
+          echo "========================================="
+          echo "🚨 НАЙДЕНА ОШИБКА (ключевые строки):"
+          echo "========================================="
+          grep -i -B 3 -A 3 "error\|exception\|failed\|modulenotfound\|traceback" build_full_log.txt | tail -n 100
+          echo "========================================="
+          echo "🚨 ПОСЛЕДНИЕ 80 СТРОК ЛОГА:"
+          echo "========================================="
+          tail -n 80 build_full_log.txt
+          exit 1
         fi
         
     - name: Upload APK
