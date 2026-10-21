@@ -53,11 +53,31 @@ jobs:
         p4a.branch = master
         EOF
         
-    - name: Build APK
+    - name: Build APK (с авто-поиском ошибки)
       run: |
-        buildozer -v android debug
+        # Отключаем немедленный выход при ошибке, чтобы сохранить лог
+        set +e
+        buildozer -v android debug > build_full_log.txt 2>&1
+        EXIT_CODE=$?
+        set -e # Включаем обратно
+        
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo "========================================="
+          echo "🚨 НАСТОЯЩАЯ ПРИЧИНА СБОЯ (Real Error):"
+          echo "========================================="
+          # Ищем строки с error, exception или failed и показываем последние 15
+          grep -i -E "error:|exception|fatal|failed" build_full_log.txt | tail -n 15
+          echo "========================================="
+          echo "Если выше пусто, вот самые последние 30 строк лога:"
+          tail -n 30 build_full_log.txt
+          echo "========================================="
+          exit 1
+        else
+          echo "✅ Сборка прошла успешно!"
+        fi
         
     - name: Upload APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: university-apk
