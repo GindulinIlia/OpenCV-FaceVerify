@@ -59,20 +59,20 @@ jobs:
         rm -rf .buildozer bin
         
         echo "🚀 Запуск сборки..."
+        # Отключаем аварийный выход при ошибке, чтобы мы могли прочитать лог
+        set +e
         buildozer -v android debug > build_full_log.txt 2>&1
         EXIT_CODE=$?
+        set -e
         
         if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ Сборка прошла успешно!"
         else
           echo "========================================="
-          echo "🚨 НАЙДЕНА ОШИБКА (ключевые строки):"
+          echo "🚨 ПОСЛЕДНИЕ 150 СТРОК ЛОГА (ЗДЕСЬ ТОЧНАЯ ОШИБКА):"
           echo "========================================="
-          grep -i -B 3 -A 3 "error\|exception\|failed\|modulenotfound\|traceback" build_full_log.txt | tail -n 100
+          tail -n 150 build_full_log.txt
           echo "========================================="
-          echo "🚨 ПОСЛЕДНИЕ 80 СТРОК ЛОГА:"
-          echo "========================================="
-          tail -n 80 build_full_log.txt
           exit 1
         fi
         
