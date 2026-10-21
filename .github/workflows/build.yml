@@ -9,7 +9,7 @@ jobs:
     - name: Check main.py
       run: |
         if [ ! -f "main.py" ]; then
-          echo "ERROR: main.py not found! Rename your file to exactly 'main.py'"
+          echo "ERROR: main.py not found!"
           exit 1
         fi
 
@@ -26,7 +26,6 @@ jobs:
     - name: Install Python dependencies
       run: |
         pip install --upgrade pip
-        # ИЗМЕНЕНО: Cython 0.29.33 - самая стабильная версия для Kivy
         pip install buildozer cython==0.29.33
         
     - name: Create buildozer.spec
@@ -39,7 +38,6 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,json
         version = 0.1
-        # ИЗМЕНЕНО: Kivy 2.2.1 - самая стабильная версия для компиляции под Android
         requirements = python3,kivy==2.2.1
         orientation = portrait
         fullscreen = 0
@@ -52,24 +50,24 @@ jobs:
         [buildozer]
         log_level = 2
         warn_on_root = 1
-        p4a.branch = master
+        # p4a.branch УДАЛЕН, чтобы использовать стабильную версию по умолчанию
         EOF
         
-    - name: Build APK (с авто-поиском ошибки)
+    - name: Build APK
       run: |
-        set +e
+        # 1. ПРИНУДИТЕЛЬНАЯ ОЧИСТКА КЭША (критически важно!)
+        rm -rf .buildozer
+        rm -rf bin
+        
+        # 2. Запуск сборки
         buildozer -v android debug > build_full_log.txt 2>&1
         EXIT_CODE=$?
-        set -e
         
         if [ $EXIT_CODE -ne 0 ]; then
           echo "========================================="
-          echo "🚨 НАСТОЯЩАЯ ПРИЧИНА СБОЯ (Real Error):"
+          echo "🚨 ОШИБКА:"
           echo "========================================="
-          grep -i -E "error:|exception|fatal|failed" build_full_log.txt | tail -n 15
-          echo "========================================="
-          echo "Если выше пусто, вот самые последние 30 строк лога:"
-          tail -n 30 build_full_log.txt
+          tail -n 50 build_full_log.txt
           echo "========================================="
           exit 1
         else
