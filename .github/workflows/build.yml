@@ -2,7 +2,6 @@ name: Build APK
 on: [push]
 jobs:
   build:
-    # ВАЖНО: Используем 22.04, так как на 24.04 ломается сборка libffi
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
@@ -39,7 +38,7 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,json
         version = 0.1
-        requirements = python3,kivy
+        requirements = python3,kivy==2.3.0
         orientation = portrait
         fullscreen = 0
         android.archs = arm64-v8a
@@ -51,6 +50,9 @@ jobs:
         [buildozer]
         log_level = 2
         warn_on_root = 1
+        
+        [buildozer]
+        p4a.branch = master
         EOF
         
     - name: Build APK
