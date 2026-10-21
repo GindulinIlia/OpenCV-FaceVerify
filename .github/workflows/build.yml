@@ -26,7 +26,8 @@ jobs:
     - name: Install Python dependencies
       run: |
         pip install --upgrade pip
-        pip install buildozer cython==0.29.36
+        # ИЗМЕНЕНО: Cython 0.29.33 - самая стабильная версия для Kivy
+        pip install buildozer cython==0.29.33
         
     - name: Create buildozer.spec
       run: |
@@ -38,7 +39,8 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,json
         version = 0.1
-        requirements = python3,kivy==2.3.0
+        # ИЗМЕНЕНО: Kivy 2.2.1 - самая стабильная версия для компиляции под Android
+        requirements = python3,kivy==2.2.1
         orientation = portrait
         fullscreen = 0
         android.archs = arm64-v8a
@@ -55,17 +57,15 @@ jobs:
         
     - name: Build APK (с авто-поиском ошибки)
       run: |
-        # Отключаем немедленный выход при ошибке, чтобы сохранить лог
         set +e
         buildozer -v android debug > build_full_log.txt 2>&1
         EXIT_CODE=$?
-        set -e # Включаем обратно
+        set -e
         
         if [ $EXIT_CODE -ne 0 ]; then
           echo "========================================="
           echo "🚨 НАСТОЯЩАЯ ПРИЧИНА СБОЯ (Real Error):"
           echo "========================================="
-          # Ищем строки с error, exception или failed и показываем последние 15
           grep -i -E "error:|exception|fatal|failed" build_full_log.txt | tail -n 15
           echo "========================================="
           echo "Если выше пусто, вот самые последние 30 строк лога:"
