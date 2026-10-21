@@ -13,10 +13,10 @@ jobs:
           exit 1
         fi
 
-    - name: Set up Python 3.11
+    - name: Set up Python 3.10
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.10'  # 3.10 — золотой стандарт стабильности для Kivy Android
         
     - name: Install system dependencies
       run: |
@@ -26,7 +26,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         pip install --upgrade pip
-        pip install buildozer cython==3.0.10
+        pip install buildozer cython==0.29.33
         
     - name: Create buildozer.spec
       run: |
@@ -38,19 +38,18 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,json
         version = 0.1
-        requirements = python3,kivy==2.3.0
+        requirements = python3,kivy==2.2.1
         orientation = portrait
         fullscreen = 0
         android.archs = arm64-v8a
         android.api = 33
         android.minapi = 21
-        android.ndk = 27b
+        android.ndk = 25b
         android.accept_sdk_license = True
 
         [buildozer]
         log_level = 2
         warn_on_root = 1
-        p4a.branch = develop
         EOF
         
     - name: Build APK
@@ -59,7 +58,6 @@ jobs:
         rm -rf .buildozer bin
         
         echo "🚀 Запуск сборки..."
-        # Отключаем аварийный выход при ошибке, чтобы мы могли прочитать лог
         set +e
         buildozer -v android debug > build_full_log.txt 2>&1
         EXIT_CODE=$?
@@ -69,10 +67,13 @@ jobs:
           echo "✅ Сборка прошла успешно!"
         else
           echo "========================================="
-          echo "🚨 ПОСЛЕДНИЕ 150 СТРОК ЛОГА (ЗДЕСЬ ТОЧНАЯ ОШИБКА):"
+          echo "🚨 Ключевые строки с ошибкой:"
           echo "========================================="
-          tail -n 150 build_full_log.txt
+          grep -i -E "error|exception|fatal|failed|traceback" build_full_log.txt | tail -n 30 || echo "Не найдено"
           echo "========================================="
+          echo "🚨 Последние 50 строк лога:"
+          echo "========================================="
+          tail -n 50 build_full_log.txt
           exit 1
         fi
         
@@ -82,3 +83,10 @@ jobs:
       with:
         name: university-apk
         path: bin/*.apk
+
+    - name: Upload Full Log (если была ошибка)
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-full-log
+        path: build_full_log.txt
